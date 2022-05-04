@@ -187,16 +187,20 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
             {
                 case 'CSV1':
                 case 'CSV2':
+                case 'CSV3':
+                case 'CSV4':
                     $file_arr = file($parts_file["tmp_name"]);
                     $file_arr = preg_replace('/\r\n|\r|\n/', "", $file_arr);
-                    $quantityList = array_map(function($val) {
+                    
+                    $quantityList = array_map(function($val) use ($file_type_code) {
                         $trimmed = Trim(Trim($val), ",");
-                        return explode(',', $trimmed);
+                        $seperator = $file_type_code == 'CSV1' || $file_type_code == 'CSV2' ? ',' : "\t";
+                        return explode( $seperator, $trimmed);
                     }, $file_arr);
                     
                     dbg::m('qty:'.print_r($quantityList,true));
-                    if($file_type_code == 'CSV2')
-                    {//if qty, part no reverse arrays
+                    if($file_type_code == 'CSV2' || $file_type_code == 'CSV4')
+                    {//if qty, part-no reverse arrays
                         $quantityList = array_map(function($val) {
                             return array_reverse($val);
                         }, $quantityList);
@@ -208,7 +212,7 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
                     }, $quantityList);
                     dbg::m('sku:'.print_r($productList,true));
                     break;
-                case 'CSV3':
+                case 'CSV5':
                     $strList = file_get_contents($parts_file["tmp_name"], true);
                     preg_replace('/\r\n|\r|\n/', "", $strList);
                     $strList = Trim(Trim($strList), ",");
@@ -240,9 +244,9 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
             $useSkuFormat = Tools::isSubmit('isSkuFormat') && Tools::getValue('isSkuFormat') == "true";
             
             $tempList = Trim(Trim($strList), ",");
-            $tempList = explode(",", $strList);
+            $tempList = explode("|", $strList);
             $tempQty = Trim(Trim($strQtyList), ",");
-            $tempQty = explode(",", $strQtyList);
+            $tempQty = explode("|", $strQtyList);
             for($idx = 0; $idx < count($tempList); $idx++)
             {
                 if(!empty($tempList[$idx]))

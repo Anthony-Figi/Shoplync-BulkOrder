@@ -70,6 +70,7 @@
                     <label for="list_type_1" class="list_type" title="A comma delimited list of part numbers only. In the following format: partNumber1,partNumber2,partNumber3">Parts List Only</label>
                     <input type="radio" id="list_type_2" name="list_type" value="true" required>
                     <label for="list_type_2" class="list_type" title="A comma delimited list in the following format: partNumber,orderQuantity">Parts List + Quantity</label>
+                    <h6 style="text-transform: none;" class="alert-text font-italic">Note: Combo MPN's which contain a comma are not supported with this method, use the corresponding SKU number instead.</h6>
                     <input type="reset" value="Reset" class="btn btn-primary d-block mx-auto">
                 </div>
                 <!--/ Tab Pages -->
@@ -79,7 +80,9 @@
                   <option value="" selected="selected">&lt;---Select File Type---&gt;</option>
                   <option value="CSV1">CSV File: Part #,Qty</option>
                   <option value="CSV2">CSV File: Qty,Part #</option>
-                  <option value="CSV3">CSV File: Part # (No Qty)</option>
+                  <option value="CSV3">Tab Delim: Part #,Qty</option>
+                  <option value="CSV4">Tab Delim: Qty,Part #</option>
+                  <option value="CSV5">CSV File: Part # (No Qty)</option>
                   <option value="SMS" disabled>Shoplync SMS Pro</option>
                   <option value="BT" disabled>BiT Software</option>
                   <option value="LS" disabled>CDK LightSpeed</option>

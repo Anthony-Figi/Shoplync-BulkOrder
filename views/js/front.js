@@ -263,8 +263,8 @@ function DoManualInput(skuFormat = true)
         data: { 
             ajax: true, 
             action: 'submitBulkOrderList',//lowercase with action name 
-            submit_parts: partNumbers.join(),
-            submit_qty: partQty.join(),
+            submit_parts: partNumbers.join('|'),
+            submit_qty: partQty.join('|'),
             isSkuFormat: skuFormat,
         }, 
         success : function (data) {
@@ -351,7 +351,7 @@ var baseTable = '<table class="table table-hover wlp_bought_list" id="table_orde
     + '<th class="col-xs-7 col-lg-3 orderlist-product-desc">Items</th>'
     + '<th class="hidden-md-down col-lg-2 orderlist-product-brand"  id="orderlist-product-brand">Brand</th>'
     + '<th class="hidden-md-down col-lg-1 orderlist-product-price" id="orderlist-product-price">Price</th>'
-    + '<th class="col-xs-1 col-lg-1 orderlist-product-quantity" id="orderlist-product-qty">Quantity</th>'
+    + '<th class="hidden-md-down col-lg-1 orderlist-product-quantity" id="orderlist-product-qty">Quantity</th>'
     + '<th class="col-lg-2 hidden-md-down orderlist-product-actions" id="orderlist-product-action">&nbsp;</th>'
     + '</tr></thead><tbody id="table_body"></tbody></table>';
 
@@ -436,8 +436,8 @@ function CreateProductObject(product){
             
         }
         
-        var tableRow = '<tr><td class="hidden-md-down col-lg-1 checkbox-col nopadding-right"><img src="'+productImage+'" alt="'+name.trim()+'"></td>'
-            + '<td class="col-xs-3 col-lg-2 checkbox-col orderlist-product-partNo"><p>MPN: <span class="product_partNo">'+partNo+'</span></p><p>SKU: <span class="product_sku">'+mpn+'</spam></p></td>'
+        var tableRow = '<tr><td class="col-xs-12 hidden-md col-lg-1 checkbox-col nopadding-right"><img src="'+productImage+'" alt="'+name.trim()+'"></td>'
+            + '<td class="col-xs-12 col-md-3 col-lg-2 checkbox-col orderlist-product-partNo"><p>MPN: <span class="product_partNo">'+partNo+'</span></p><p>SKU: <span class="product_sku">'+mpn+'</spam></p></td>'
             + '<td class="col-xs-12 col-lg-3 checkbox-col orderlist-product-desc"><p class="product_name"><a href="'+productLink+'" target="_blank">'+name.trim()+'</a></p></td>'
             + '<td class="hidden-md-down col-lg-2 checkbox-col orderlist-product-brand"><p class="product_brand">'+mfgName+'</p></td>'
             + '<td class="col-xs-12 col-lg-1 checkbox-col orderlist-product-price">$'+price+'</td>'
@@ -475,7 +475,7 @@ function CreateRejectObject(reject){
         var partNo = reject.hasOwnProperty('reference') ? reject.reference : "";
         
         var tableRow = '<tr>'
-            + '<td class="col-xs-3 col-lg-2 checkbox-col orderlist-product-partNo"><p class="product_partNo">'+partNo+'</p></td>'
+            + '<td class="col-xs-5 col-lg-2 checkbox-col orderlist-product-partNo"><p class="product_partNo">'+partNo+'</p></td>'
             + '<td class="col-xs-7 col-lg-3 checkbox-col orderlist-product-desc"><p class="product_name">Item Not Found In Our System</p></td>'
             + '<td class="hidden-md-down col-lg-3 checkbox-col orderlist-product-brand"><p class="product_name">Unknown</p></td>'
 
