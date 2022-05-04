@@ -10,9 +10,15 @@
 * @link      http://www.shoplync.com/
 */
 
+//include_once dirname(_PS_MODULE_DIR_).'/modules/BulkOrder/classes/helper.php';
 /**
  * Class itself
  */
+if(!class_exists('dbg'))
+{
+    include_once dirname(_PS_MODULE_DIR_).'/modules/BulkOrder/classes/helper.php';
+    class_alias('BulkOrder_dbg', 'dbg');
+}
 class BulkOrderNewModuleFrontController extends ModuleFrontController
 {
     /**
@@ -128,17 +134,142 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
     {
         return parent::postProcess(); 
     }
-    public function displayAjaxSubmitBulkOrder() {
+    /**
+     * This function sets the appropritate error headers and returns the default 'Failed' error response
+     * 
+     * $errorMessage string - The error message to return
+     * $extra_details array() - array of key:value pairs to be added to the error json response
+     * 
+    */
+    public function setErrorHeaders($errorMessage = 'Failed', $extra_details = [])
+    {
+        header('HTTP/1.1 500 Internal Server Error');
+        header('Content-Type: application/json; charset=UTF-8');
+        
+        $error_array = ['errorResponse' => $errorMessage];
+        
+        if(!empty($extra_details) && is_array($extra_details))
+            $error_array = $error_array + $extra_details;
+        
+        $this->ajaxDie(json_encode($error_array));
+    }
+    
+    
+    public function displayAjaxSubmitBulkOrderFile(){
+        
+        $parts_file = Tools::fileAttachment('file', true);
+        if (Tools::isSubmit('file_type_code') && !is_null($parts_file))
+        {
+            $productList = array();
+            $quantityList = array();
+            $returnObj = array();
+            
+            $useSkuFormat = Tools::isSubmit('isSkuFormat') && Tools::getValue('isSkuFormat') == "true";
+            $file_type_code = Tools::getValue('file_type_code');
+            dbg::m("The file ajax request has been recieved");
+            
+            //Check file size
+            if($parts_file['size']  == 0 || ($parts_file['size'] / 1024 / 1024) > 3)
+            {
+                $this->setErrorHeaders('Max image size exceeded');
+            }
+            //check if image is correct type
+            $file_type = strtolower(pathinfo('/'.$parts_file["name"],PATHINFO_EXTENSION) ?? '');
+            $accepted_types = ['txt', 'csv', 'otf'];
+            
+            if(!in_array($file_type,$accepted_types))
+            {
+                $this->setErrorHeaders('File type must be one of the following: '.implode(', ', $accepted_types));
+            }
+            
+            
+            switch($file_type_code)
+            {
+                case 'CSV1':
+                case 'CSV2':
+                    $file_arr = file($parts_file["tmp_name"]);
+                    $file_arr = preg_replace('/\r\n|\r|\n/', "", $file_arr);
+                    $quantityList = array_map(function($val) {
+                        $trimmed = Trim(Trim($val), ",");
+                        return explode(',', $trimmed);
+                    }, $file_arr);
+                    
+                    dbg::m('qty:'.print_r($quantityList,true));
+                    if($file_type_code == 'CSV2')
+                    {//if qty, part no reverse arrays
+                        $quantityList = array_map(function($val) {
+                            return array_reverse($val);
+                        }, $quantityList);
+                        dbg::m('qty2:'.print_r($quantityList,true));
+                    }
+                    
+                    $productList = array_map(function($val) {
+                        return $val[0];
+                    }, $quantityList);
+                    dbg::m('sku:'.print_r($productList,true));
+                    break;
+                case 'CSV3':
+                    $strList = file_get_contents($parts_file["tmp_name"], true);
+                    preg_replace('/\r\n|\r|\n/', "", $strList);
+                    $strList = Trim(Trim($strList), ",");
+                    $productList = explode(",", $strList);
+                    break;
+                default:
+                    $this->setErrorHeaders('Failed to read file, unrecognized file type: '.$file_type_code);
+                    break;
+            };
+            
+            $returnObj = $this->GenerateProductList($productList, $quantityList, $useSkuFormat);
+            $this->ajaxDie(json_encode($returnObj));
+        }
+        else 
+        {
+           $this->setErrorHeaders('Failed to read file');
+        }
+    }
+    public function displayAjaxSubmitBulkOrderList() {
+        if (Tools::isSubmit('submit_parts') && Tools::isSubmit('submit_qty'))
+        {
+            $productList = array();
+            $quantityList = array();
+            $returnObj = array();
+            
+            $strList = Tools::getValue('submit_parts');
+            $strQtyList = Tools::getValue('submit_qty');
+            
+            $useSkuFormat = Tools::isSubmit('isSkuFormat') && Tools::getValue('isSkuFormat') == "true";
+            
+            $tempList = Trim(Trim($strList), ",");
+            $tempList = explode(",", $strList);
+            $tempQty = Trim(Trim($strQtyList), ",");
+            $tempQty = explode(",", $strQtyList);
+            for($idx = 0; $idx < count($tempList); $idx++)
+            {
+                if(!empty($tempList[$idx]))
+                {
+                    array_push($productList, $tempList[$idx]);
+                    array_push($quantityList, [ $tempList[$idx], (empty($tempQty[$idx]) || $tempQty[$idx] == '0' ? 1 : $tempQty[$idx]) ]);
+                }
+            }
+            
+            $returnObj = $this->GenerateProductList($productList, $quantityList, $useSkuFormat);
+            $this->ajaxDie(json_encode($returnObj));
+        }
+        else 
+        {
+           $this->setErrorHeaders('Failed to read parts list');
+        }
+    }
+    public function displayAjaxSubmitBulkOrderTextBox() {
         if (Tools::isSubmit('submit_parts'))
         {
-            $quantityList = array();
-            $productDetailsList = array();
-            $productRejectList = array();
             $productList = array();
+            $quantityList = array();
+            $returnObj = array();
             
             $strList = Tools::getValue('submit_parts');
             
-            if(Tools::isSubmit('hasQuantity') &&  Tools::getValue('hasQuantity') == "true")
+            if(isset($strList) && Tools::isSubmit('hasQuantity') && Tools::getValue('hasQuantity') == "true")
             {
                $tempList = Trim(Trim($strList), ",");
                $tempList = preg_split('/\r\n|\r|\n/', $strList);
@@ -152,43 +283,56 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
                }
             }
             
+            $useSkuFormat = Tools::isSubmit('isSkuFormat') && Tools::getValue('isSkuFormat') == "true";
+            
             if(isset($strList))
             {
                 $strList = Trim(Trim($strList), ",");
                 $productList = empty($productList) ? explode(",", $strList) : $productList;
-                
-                foreach($productList as $sku)
-                {
-                    $sku = Trim($sku);
-                    $result = $this->searchProducts($sku, true);
-                    if(is_array($result) && isset($result['notfound']))
-                    {
-                        error_log("NOT FOUND");
-                        //part not found add to rejectList
-                        $sku_obj = new stdClass();
-                        $sku_obj->reference = $sku;
-                        $sku_obj->prestashopProduct = false;
-                        
-                        array_push($productRejectList, $sku_obj);
-                    }
-                    else if(is_array($result) && isset($result['found']) && $result['found'])
-                    {
-                        error_log("FOUND");
-                        array_push($productDetailsList, empty($quantityList) ? $result['products'][0] : $this->LookForQuantity($result['products'][0], $quantityList) );
-                    }
-                }
+                $returnObj = $this->GenerateProductList($productList, $quantityList, $useSkuFormat);
             }
-            $returnObj = array();
-            array_push($returnObj, $productDetailsList);
-            array_push($returnObj, $productRejectList);
-            
             $this->ajaxDie(json_encode($returnObj));
         }
         else 
         {
-           $this->ajaxDie('testy2');
+           $this->setErrorHeaders('Failed to read parts list');
         }
     }
+
+    protected function GenerateProductList($productList, $quantityList = [], $useSkuFormat = true)
+    {
+        if(empty($productList))
+            return array();
+        
+        $productDetailsList = array();
+        $productRejectList = array();
+        
+        foreach($productList as $sku)
+        {
+            $sku = Trim($sku);
+            $result = $this->searchProducts($sku, true, $useSkuFormat);
+            if(is_array($result) && isset($result['notfound']))
+            {
+                dbg::m("NOT FOUND |".$sku."|");
+                //part not found add to rejectList
+                $sku_obj = new stdClass();
+                $sku_obj->reference = $sku;
+                $sku_obj->prestashopProduct = false;
+                
+                array_push($productRejectList, $sku_obj);
+            }
+            else if(is_array($result) && isset($result['found']) && $result['found'])
+            {
+                dbg::m("FOUND |".$sku."|");
+                array_push($productDetailsList, empty($quantityList) ? $result['products'][0] : $this->LookForQuantity($result['products'][0], $quantityList) );
+            }
+        }
+        $returnObj = array();
+        array_push($returnObj, $productDetailsList);
+        array_push($returnObj, $productRejectList);
+        
+        return $returnObj;
+    } 
 
     protected function LookForQuantity($product, $qtyList)
     {
@@ -196,7 +340,8 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
         {
             foreach($qtyList as $skuName)
             {
-                if($product['reference'] == $skuName[0] || reset($product['combinations'])['combination_reference'] == $skuName[0])
+                if($product['reference'] == $skuName[0] || reset($product['combinations'])['combination_reference'] == $skuName[0] 
+                    || $product['mpn'] == $skuName[0] || reset($product['combinations'])['combination_mpn'] == $skuName[0])
                 {
                     $qty = intval($skuName[1]);
                     $product['toOrder'] = $qty != null && $qty > 0 ? $qty : 1;
@@ -211,12 +356,12 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
     * Forked From https://github.com/PrestaShop/PrestaShop/blob/develop/controllers/admin/AdminCartRulesController.php
     *
     **/    
-    protected function searchProducts($search, $strict = false)
+    protected function searchProducts($search, $strict = false, $skuOnly = false)
     {
         $products;
         if($strict)
         {
-            $products = $this->searchByNameStrict((int) $this->context->language->id, $search);
+            $products = $this->searchByNameStrict((int) $this->context->language->id, $search, null, null, $skuOnly);
         }
         else
         {
@@ -247,11 +392,12 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
                         if (!isset($combinations[$attribute['id_product_attribute']]['attributes'])) {
                             $combinations[$attribute['id_product_attribute']]['attributes'] = '';
                         }
-
+                        dbg::m('attribute: '.print_r($attribute, true));
                         $combinations[$attribute['id_product_attribute']]['attributes'] .= $attribute['attribute_name'] . ' - ';
                         $combinations[$attribute['id_product_attribute']]['id_product_attribute'] = $attribute['id_product_attribute'];
                         $combinations[$attribute['id_product_attribute']]['default_on'] = $attribute['default_on'];
                         $combinations[$attribute['id_product_attribute']]['combination_reference'] = $attribute['reference'];
+                        $combinations[$attribute['id_product_attribute']]['combination_mpn'] = $attribute['mpn'];
                         if (!isset($combinations[$attribute['id_product_attribute']]['price'])) {
                             $price_tax_incl = Product::getPriceStatic((int) $product['id_product'], true, $attribute['id_product_attribute']);
                             $combinations[$attribute['id_product_attribute']]['formatted_price'] = $price_tax_incl
@@ -283,6 +429,7 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
 
     /**
      * Admin panel product search. (Renmamed searchByName -> searchByNameStrict)
+     * instead of using the sql 'LIKE' qualifier it uses '=' to be more precise
      *
      * @param int $id_lang Language identifier
      * @param string $query Search query
@@ -294,7 +441,7 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
      * Forked from https://github.com/PrestaShop/PrestaShop/blob/6f95f94dcc41858629c43f0f099f4beede68ac67/classes/Product.php#L4855
      *
      */
-    public function searchByNameStrict($id_lang, $query, Context $context = null, $limit = null)
+    public function searchByNameStrict($id_lang, $query, Context $context = null, $limit = null, $skuOnly = false)
     {
         if ($context !== null) {
             Tools::displayParameterAsDeprecated('context');
@@ -310,15 +457,25 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
             AND pl.`id_lang` = ' . (int) $id_lang . Shop::addSqlRestrictionOnLang('pl')
         );
         $sql->leftJoin('manufacturer', 'm', 'm.`id_manufacturer` = p.`id_manufacturer`');
-         
-        $where = 'pl.`name` = \'' . pSQL($query) . '\'
-        OR p.`ean13` = \'' . pSQL($query) . '\'
-        OR p.`isbn` = \'' . pSQL($query) . '\'
-        OR p.`upc` = \'' . pSQL($query) . '\'
-        OR p.`mpn` = \'' . pSQL($query) . '\'
-        OR p.`reference` = \'' . pSQL($query) . '\'
-        OR p.`supplier_reference` = \'' . pSQL($query) . '\'
-        OR EXISTS(SELECT * FROM `' . _DB_PREFIX_ . 'product_supplier` sp WHERE sp.`id_product` = p.`id_product` AND `product_supplier_reference` = \'' . pSQL($query) . '\')';
+        
+    
+        if($skuOnly)
+        {
+            $where = 'p.`mpn` = \'' . pSQL($query) . '\'';
+        }
+        else 
+        {
+            $where = /*'pl.`name` = \'' . pSQL($query) . '\'
+            OR p.`ean13` = \'' . pSQL($query) . '\'
+            OR p.`isbn` = \'' . pSQL($query) . '\'
+            OR p.`upc` = \'' . pSQL($query) . '\'
+            OR p.`mpn` = \'' . pSQL($query) . '\'
+            OR */
+            'p.`reference` = \'' . pSQL($query) . '\'
+            OR p.`supplier_reference` = \'' . pSQL($query) . '\'
+            OR EXISTS(SELECT * FROM `' . _DB_PREFIX_ . 'product_supplier` sp WHERE sp.`id_product` = p.`id_product` AND `product_supplier_reference` = \'' . pSQL($query) . '\')';
+        }
+
 
         $sql->orderBy('pl.`name` ASC');
 
@@ -327,12 +484,19 @@ class BulkOrderNewModuleFrontController extends ModuleFrontController
         }
 
         if (Combination::isFeatureActive()) {
-            $where .= ' OR EXISTS(SELECT * FROM `' . _DB_PREFIX_ . 'product_attribute` `pa` WHERE pa.`id_product` = p.`id_product` AND (pa.`reference` = \'' . pSQL($query) . '\'
-            OR pa.`supplier_reference` = \'' . pSQL($query) . '\'
-            OR pa.`ean13` = \'' . pSQL($query) . '\'
-            OR pa.`isbn` = \'' . pSQL($query) . '\'
-            OR pa.`mpn` = \'' . pSQL($query) . '\'
-            OR pa.`upc` = \'' . pSQL($query) . '\'))';
+            if($skuOnly)
+            {
+                $where .= ' OR EXISTS(SELECT * FROM `' . _DB_PREFIX_ . 'product_attribute` `pa` WHERE pa.`id_product` = p.`id_product` AND pa.`mpn` = \'' . pSQL($query) . '\')';
+            }
+            else 
+            {
+                $where .= ' OR EXISTS(SELECT * FROM `' . _DB_PREFIX_ . 'product_attribute` `pa` WHERE pa.`id_product` = p.`id_product` AND (pa.`reference` = \'' . pSQL($query) . '\'
+                OR pa.`supplier_reference` = \'' . pSQL($query) . '\''
+                /*OR pa.`ean13` = \'' . pSQL($query) . '\'
+                OR pa.`isbn` = \'' . pSQL($query) . '\'
+                OR pa.`mpn` = \'' . pSQL($query) . '\'
+                OR pa.`upc` = \'' . pSQL($query) . '\*/.'))';
+            }
         }
         
         $sql->where($where);

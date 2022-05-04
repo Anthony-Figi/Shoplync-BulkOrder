@@ -29,7 +29,15 @@
 if (!defined('_PS_VERSION_')) {
     exit;
 }
-
+if(!defined('DBG_ON'))
+{
+    define('DBG_ON', true);
+}
+if(!class_exists('dbg'))
+{
+    include_once dirname(_PS_MODULE_DIR_).'/modules/BulkOrder/classes/helper.php';
+    class_alias(get_class($shoplync_dbg), 'dbg');
+}
 class BulkOrder extends Module
 {
     protected $config_form = false;
@@ -73,7 +81,7 @@ class BulkOrder extends Module
             $this->registerHook('Header') &&
             $this->registerHook('displayHeader') &&
             $this->registerHook('displayBeforeBodyClosingTag') &&
-            $this->registerHook('backOfficeHeader') &&
+            $this->registerHook('displayBackOfficeHeader') &&
             $this->registerHook('displayCustomerAccount') &&
             $this->registerHook('displayProductExtraContent');
     }
@@ -215,7 +223,7 @@ class BulkOrder extends Module
     */
     public function hookBackOfficeHeader()
     {
-        if (Tools::getValue('module_name') == $this->name) {
+        if (Tools::getValue('configure') == $this->name) {
             $this->context->controller->addJS($this->_path.'views/js/back.js');
             $this->context->controller->addCSS($this->_path.'views/css/back.css');
         }

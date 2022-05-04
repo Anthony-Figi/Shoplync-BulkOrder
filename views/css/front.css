@@ -25,6 +25,16 @@
 * Don't forget to prefix your containers with your own identifier
 * to avoid any conflicts with others containers.
 */
+.mx-0-auto 
+{
+    margin: 0 auto;
+}
+select.form-control {
+    border-radius:10px;
+}
+.clearfix {
+    clear:both;
+}
 #bulk-order #content {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 20%);
     border: 1px solid rgba(0,0,0,.125);
@@ -37,6 +47,10 @@
 .clr_hr {
     border-bottom: 1px solid #CCC!important;
 }
+#bulk-order .disabled {
+    color: grey;
+    background-color: rgb(0 0 0 / 9%);
+}
 #bulk-order #partNumberList {
     padding-bottom: 1em;
 }
@@ -44,10 +58,14 @@
 #bulk-order #partNumberList:active {
     border-color: #e31d27;
 }
+#bulk-order .format_type,
 #bulk-order .list_type {
-    padding: 10px 10px 10px 0;
+    padding: 10px 10px 10px 5px;
 }
 
+#bulk-order .format_type{
+    padding-bottom: 0px;
+}
 .orderlist-product-quantity .orderlist_product_qty{
     width:100%;
     max-width:100%;
@@ -86,4 +104,82 @@
     border-left-color: #bbcdd2;
     border-top-color: #bbcdd2;
     animation: rotating 2s linear infinite;
+}
+
+#bulk-order #file_type {
+    border-radius: 10px;
+    padding: 8px 8px;
+}
+/* Style the tab */
+#bulk-order .tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+  border-radius: 10px 10px 0 0;
+}
+
+/* Style the buttons inside the tab */
+#bulk-order .tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  font-size: 17px;
+}
+
+/* Change background color of buttons on hover */
+#bulk-order .tab button:hover {
+  background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+#bulk-order .tab button.active {
+  background-color: #ccc;
+}
+
+/* Style the tab content */
+#bulk-order .tabcontent {
+  display: none;
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+.d-inline {
+    display:inline-block;
+}
+
+#manualInput h1 {
+    width:21%;
+    font-weight:bold;
+}
+
+#manualInput input {
+    margin: 5px;
+    width:20%;
+}
+#manualInput input[type='reset']{
+    width:auto !important;
+} 
+@media (max-width: 769px)
+{
+    #manualInput h1 {
+        width:45%;
+        font-weight:bold;
+    }
+    #manualInput input {
+        margin: 5px;
+        width:45%;
+    }
+    #manualInput input[type='reset']{
+        width:auto !important;
+    } 
+    div#inputContainer h1:nth-of-type(3),
+    div#inputContainer h1:nth-of-type(4) {
+        display:none!important;
+    }
 }
