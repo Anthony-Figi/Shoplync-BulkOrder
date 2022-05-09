@@ -44,7 +44,7 @@ var recognizedTypes = [
     'text/comma-separated-values','text/x-comma-separated-values','text/tab-separated-values'
 ];
 
-$('#add_to_cart').click(function(e) {
+function AddItemsToCart(e) {
     e.preventDefault(); // avoid to execute the actual submit of the form.
     if(Array.isArray(partsList) && partsList.length > 0){
         console.log('Adding selected parts to cart.');
@@ -65,7 +65,7 @@ $('#add_to_cart').click(function(e) {
     {
         alert('There are no items to add to cart.');
     }
-});
+}
 
 
 /**
@@ -94,6 +94,10 @@ function fileTypeSelected(theElement)
         {
             //disable regular panels
             disableTabs(true, true);
+            //enable upload file tab
+            $('#uploadFileList').removeClass('disabled');
+            $('#uploadFileList.tabcontent input').prop('disabled', false);
+            $('#uploadFileList.tabcontent button').prop('disabled', false);
         }
         else 
         {
@@ -190,17 +194,58 @@ function addToCart(id_product, id_product_attribute, id_quantity, static_link_to
         });
     }
 }
+/**
+* Will merge arrays and update duplicate quantities
+*/
+function FilterDuplicateParts(baseArry, newArry)
+{
+    if(baseArry.length == 0)
+        return newArry;
+    
+    var nonDuplicates = [];
+    for(idx in newArry)
+    {
+        var isNew = true;
+        for(index in baseArry)
+        {
+            var baseArrayReference = GetReferenceNumber(baseArry[index])[1];
+            var newArrayReference = GetReferenceNumber(newArry[idx])[1];
+            
+            if(baseArry[index].reference == newArry[idx].reference 
+            ||  (baseArrayReference.length > 0 && newArrayReference.length > 0 && baseArrayReference == newArrayReference) )
+            {
+                baseArry[index].toOrder += newArry[idx].toOrder;
+                isNew = false;
+                break;
+            }
+        }
+        if(isNew)
+        {
+            console.log('not found')
+            console.log(newArry[idx]);
+            nonDuplicates.push(newArry[idx]);
+        }
 
+    }
+    console.log('NonDup');
+    console.log(nonDuplicates);
+    return baseArry.concat(nonDuplicates);
+}
 function DoAjaxSuccess(data)
 {
     if(data != null)
     {
         console.log(data);
-        $(ListContainerName).html('');            
+        $(ListContainerName).html('');
+        
         disableTabs(false, false);
         
-        partsList = data[0];
-        rejectList = data[1];
+        var backupPartsList = partsList;
+        var backupRejectList = rejectList;
+        
+        //filter out duplicates
+        partsList = FilterDuplicateParts(backupPartsList, data[0]);
+        rejectList = rejectList.concat(data[1]);
         
         ShowRejects(ListContainerName, rejectList);  
         GenerateList(ListContainerName, partsList);
@@ -211,10 +256,7 @@ function DoAjaxFailed(data)
     if(data != null)
     {
         console.log(data); 
-        $(ListContainerName).html(''); 
-        disableTabs(true, true);
-        $(ListContainerName).append(warningNotice);
-        $(noProductsInListName).append('Failed to load product or received no response from the server. Please try again later.');
+        showMessage('Failed to load product or received no response from the server. Please try again later.', true);
     }
 }
 
@@ -249,7 +291,7 @@ function DoManualInput(skuFormat = true)
     var partQty = [];
     for(let idx = 0; idx < partQtyElements.length; idx++)
     {
-        partQty.push(partQtyElements[idx].value.trim());
+        partQty.push(partQtyElements[idx].value);
     }
     
     disableTabs(true);
@@ -291,6 +333,8 @@ function disableTabs(disableTabLinks = false, disablePanel = null)
         $('.tabcontent input').prop('disabled', disablePanel);
         $('.tabcontent button').prop('disabled', disablePanel);
         $('#submit_parts footer button').prop('disabled', disablePanel);
+        $('#bulk-order section button.add-to-cart').prop('disabled', disablePanel);
+        
     }
 }
 function DoTextBoxList(skuFormat = true)
@@ -385,6 +429,7 @@ function GenerateList(objectName = '#ListContainer', dataList){
     }
     else 
     {
+        
         $(objectName).append(warningNotice);
         $(noProductsInListName).append('Failed to load product or received no response from the server. Please try again later.');
     }
@@ -477,7 +522,7 @@ function CreateRejectObject(reject){
         var tableRow = '<tr>'
             + '<td class="col-xs-5 col-lg-2 checkbox-col orderlist-product-partNo"><p class="product_partNo">'+partNo+'</p></td>'
             + '<td class="col-xs-7 col-lg-3 checkbox-col orderlist-product-desc"><p class="product_name">Item Not Found In Our System</p></td>'
-            + '<td class="hidden-md-down col-lg-3 checkbox-col orderlist-product-brand"><p class="product_name">Unknown</p></td>'
+            + '<td class="hidden-md-down col-lg-7 checkbox-col orderlist-product-brand"><p class="product_name">Unknown</p></td>'
 
         return tableRow;
     }    
@@ -506,8 +551,7 @@ function DeleteRow(currentRow){
     {
         $('#table_orderlist').remove();
         $(orderListHeadingName).remove();
-        $(ListContainerName).prepend(warningNotice);
-        $(noProductsInListName).append('There are no products to display please enter a list of comma seperated part numbers. Then click the refresh button.');
+        showMessage('There are no products to display please enter a list of comma seperated part numbers. Then click the refresh button.', false);
     }
     console.log(partsList);
 }
@@ -597,4 +641,22 @@ function addPartsRow()
         else
             $('#inputContainer').append(pnTemplate[0] + idx + pnTemplate[1]);
     }
+}
+
+function showMessage(message = "", disableTabs = true)
+{
+    $(ListContainerName).html('');
+    if(disableTabs)
+        disableTabs(true, true);
+    
+    $(ListContainerName).append(warningNotice);
+    if(message.length > 0)
+        $(noProductsInListName).append(message);
+}
+
+function ClearList()
+{
+    showMessage('There are no products to display, please enter SKU / MPN values. Then click the add to list button.', false);
+    //clear the saved array;
+    partsList = rejectList = [];
 }

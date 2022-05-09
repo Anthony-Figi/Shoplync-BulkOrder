@@ -155,12 +155,25 @@ select.form-control {
 .d-inline {
     display:inline-block;
 }
-
-#manualInput h1 {
-    width:21%;
-    font-weight:bold;
+.d-sm-inline {
+    display:inline-block;
+    margin:1rem;
 }
-
+#manualInput h1 {
+    width:20%;
+    font-weight:bold;
+    font-size: 16px;
+    margin: 5px;
+    padding: 15px;
+}
+#manualInput h1:nth-of-type(2n) {
+    width:5%;
+    text-align: left;
+}
+#manualInput input:nth-of-type(2n){
+    /*background-color:red;*/
+    width: 5%;
+}
 #manualInput input {
     margin: 5px;
     width:20%;
@@ -168,21 +181,48 @@ select.form-control {
 #manualInput input[type='reset']{
     width:auto !important;
 } 
+
+@media (min-width: 770px) and (max-width:1150px)
+{
+    #manualInput h1,
+    #manualInput input{
+        width:30%;
+    }
+    #manualInput h1:nth-of-type(2n),
+    #manualInput input:nth-of-type(2n){
+        width:10%;
+    }
+    #manualInput h1:nth-of-type(2n){
+        text-align:center;
+    }
+    div#inputContainer h1:nth-of-type(5),
+    div#inputContainer h1:nth-of-type(6) {
+        display:none!important;
+    }
+}
 @media (max-width: 769px)
 {
-    #manualInput h1 {
-        width:45%;
-        font-weight:bold;
+    .d-sm-inline {
+        display:block;
+        margin:0 auto!important;
+        margin-top:1rem!important;
     }
-    #manualInput input {
-        margin: 5px;
+    #manualInput h1,
+    #manualInput h1:nth-of-type(2n){
+        width:45%;
+        text-align:center;
+    }
+    #manualInput input,
+    #manualInput input:nth-of-type(2n){
         width:45%;
     }
     #manualInput input[type='reset']{
         width:auto !important;
     } 
     div#inputContainer h1:nth-of-type(3),
-    div#inputContainer h1:nth-of-type(4) {
+    div#inputContainer h1:nth-of-type(4),
+    div#inputContainer h1:nth-of-type(5),
+    div#inputContainer h1:nth-of-type(6) {
         display:none!important;
     }
 }
